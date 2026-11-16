@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DealHunter</title>
+<style>
+body {
+  background:#101410;
+  color:white;
+  font-family:Arial,sans-serif;
+  padding:20px;
+  max-width:600px;
+  margin:auto;
+}
+h1 {color:#53e68b;font-size:32px}
+.card {
+  background:#1c241e;
+  padding:18px;
+  border-radius:14px;
+  margin:15px 0;
+}
+input {
+  display:block;
+  width:100%;
+  padding:13px;
+  margin:10px 0;
+  box-sizing:border-box;
+  background:#101810;
+  border:1px solid #405044;
+  color:white;
+  border-radius:8px;
+}
+button {
+  background:#35c875;
+  padding:14px;
+  border:0;
+  border-radius:9px;
+  width:100%;
+  font-weight:bold;
+  margin-top:10px;
+}
+.green {color:#53e68b}
+</style>
+</head>
+<body>
+
+<h1>⚡ DealHunter</h1>
+<p>Ton assistant achat-revente</p>
+
+<div class="card">
+<h3>💰 Mon budget</h3>
+<h2 class="green" id="budget">22,00 €</h2>
+<p>Bénéfices potentiels : <span id="profit">0 €</span></p>
+</div>
+
+<div class="card">
+<h3>🔎 Ajouter une affaire</h3>
+
+<input id="name" placeholder="Nom de l'article">
+<input id="buy" type="number" placeholder="Prix d'achat (€)">
+<input id="fees" type="number" placeholder="Frais (€)" value="0">
+<input id="sell" type="number" placeholder="Prix de revente (€)">
+<input id="url" placeholder="Lien Vinted">
+
+<button onclick="addDeal()">Ajouter</button>
+</div>
+
+<h2>🔥 Mes affaires</h2>
+<div id="deals"></div>
+
+<script>
+let budget = 22;
+let deals = JSON.parse(localStorage.getItem("deals") || "[]");
+
+function addDeal() {
+ const name = document.getElementById("name").value.trim();
+ const buy = Number(document.getElementById("buy").value);
+ const fees = Number(document.getElementById("fees").value);
+ const sell = Number(document.getElementById("sell").value);
+ const url = document.getElementById("url").value.trim();
+
+ if (!name || !document.getElementById("buy").value ||
+     !document.getElementById("sell").value ||
+     buy < 0 || fees < 0 || sell < 0) {
+   alert("Remplis correctement les informations !");
+   return;
+ }
+
+ const spent = deals.reduce((s,d) => s+d.buy+d.fees,0);
+
+ if (spent + buy + fees > budget) {
+   alert("Tu dépasses ton budget de 22 € !");
+   return;
+ }
+
+ deals.push({name,buy,fees,sell,url});
+ localStorage.setItem("deals",JSON.stringify(deals));
+ render();
+}
+
+function render() {
+ const spent = deals.reduce((s,d)=>s+d.buy+d.fees,0);
+ const profit = deals.reduce((s,d)=>s+d.sell-d.buy-d.fees,0);
+
+ document.getElementById("budget").textContent =
+ (budget-spent).toFixed(2)+" €";
+
+ document.getElementById("profit").textContent =
+ profit.toFixed(2)+" €";
+
+ const list = document.getElementById("deals");
+ list.innerHTML="";
+
+ deals.forEach((d,i)=>{
+  const div=document.createElement("div");
+  div.className="card";
+
+  const title=document.createElement("h3");
+  title.textContent=d.name;
+
+  const details=document.createElement("p");
+  details.textContent="Achat : "+d.buy+" € | Revente : "+d.sell+" €";
+
+  const result=document.createElement("p");
+  result.className="green";
+  result.textContent="Bénéfice estimé : "+
+    (d.sell-d.buy-d.fees).toFixed(2)+" €";
+
+  div.append(title,details,result);
+
+  if(d.url && /^https:\/\/www\.vinted\./.test(d.url)){
+    const link=document.createElement("a");
+    link.href=d.url;
+    link.target="_blank";
+    link.rel="noopener noreferrer";
+    link.textContent="Voir l'annonce";
+    div.appendChild(link);
+  }
+
+  const del=document.createElement("button");
+  del.textContent="Supprimer";
+  del.onclick=()=>{
+    deals.splice(i,1);
+    localStorage.setItem("deals",JSON.stringify(deals));
+    render();
+  };
+  div.appendChild(del);
+  list.appendChild(div);
+ });
+}
+
+render();
+</script>
+</body>
+</html>
