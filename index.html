@@ -182,3 +182,11 @@ render();
   <script src="bot.js"></script>
 </body>
 </html>
+const spent = deals.reduce(
+  (s, d) => s + Number(d.buy) + Number(d.fees), 0
+);
+
+if (spent + Number(deal.buy) + Number(deal.fees) > budget) {
+  alert("Budget dépassé !");
+  return false;
+}
