@@ -89,6 +89,28 @@ button {
 <script>
 let budget = 22;
 let deals = JSON.parse(localStorage.getItem("deals") || "[]");
+  window.DealHunterData = {
+  getBudget: () => budget,
+  getDeals: () => deals,
+
+  addDeal: (deal) => {
+    const spent = deals.reduce(
+      (s, d) => s + Number(d.buy) + Number(d.fees), 0
+    );
+
+    if (
+      spent + Number(deal.buy) + Number(deal.fees) > budget
+    ) {
+      alert("Budget dépassé !");
+      return false;
+    }
+
+    deals.push(deal);
+    localStorage.setItem("deals", JSON.stringify(deals));
+    render();
+    return true;
+  }
+};
 window.DealHunterData = {
   getBudget: () => budget,
   getDeals: () => deals,
