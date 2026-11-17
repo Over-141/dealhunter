@@ -73,7 +73,10 @@ button {
 <script>
 let budget = 22;
 let deals = JSON.parse(localStorage.getItem("deals") || "[]");
-
+window.DealHunterData = {
+  getBudget: () => budget,
+  getDeals: () => deals
+};
 function addDeal() {
  const name = document.getElementById("name").value.trim();
  const buy = Number(document.getElementById("buy").value);
