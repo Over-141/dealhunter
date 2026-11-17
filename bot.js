@@ -239,8 +239,10 @@ const DealHunterBot = {
       );
       return;
     }
-
-    data.addDeal(this.lastAnalysis);
+if (data.addDeal(this.lastAnalysis) === false) {
+  this.addMessage("❌ Budget dépassé ! Affaire non enregistrée.", "bot");
+  return;
+}
     this.addMessage(
       "✅ Affaire enregistrée ! Tu peux maintenant la retrouver dans « Mes affaires ».",
       "bot"
