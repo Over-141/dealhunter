@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DealHunter</title>
+
 <style>
 body {
   background:#101410;
@@ -14,13 +15,19 @@ body {
   max-width:600px;
   margin:auto;
 }
-h1 {color:#53e68b;font-size:32px}
+
+h1 {
+  color:#53e68b;
+  font-size:32px;
+}
+
 .card {
   background:#1c241e;
   padding:18px;
   border-radius:14px;
   margin:15px 0;
 }
+
 input {
   display:block;
   width:100%;
@@ -32,6 +39,7 @@ input {
   color:white;
   border-radius:8px;
 }
+
 button {
   background:#35c875;
   padding:14px;
@@ -40,47 +48,53 @@ button {
   width:100%;
   font-weight:bold;
   margin-top:10px;
+  cursor:pointer;
 }
-.green {color:#53e68b}
-  /* Correction de l'interface DealHunter Assistant */
+
+.green {
+  color:#53e68b;
+}
+
+/* Interface du bot */
 #dh-chat-button {
-  width: auto;
-  margin: 0;
+  width:auto;
+  margin:0;
 }
 
 #dh-chat-window button {
-  width: auto;
-  margin: 0;
+  width:auto;
+  margin:0;
 }
 
 #dh-chat-window input {
-  width: auto;
-  margin: 0;
-  box-sizing: border-box;
+  width:auto;
+  margin:0;
+  box-sizing:border-box;
 }
 </style>
 </head>
+
 <body>
 
 <h1>⚡ DealHunter</h1>
 <p>Ton assistant achat-revente</p>
 
 <div class="card">
-<h3>💰 Mon budget</h3>
-<h2 class="green" id="budget">22,00 €</h2>
-<p>Bénéfices potentiels : <span id="profit">0 €</span></p>
+  <h3>💰 Mon budget</h3>
+  <h2 class="green" id="budget">22,00 €</h2>
+  <p>Bénéfices potentiels : <span id="profit">0 €</span></p>
 </div>
 
 <div class="card">
-<h3>🔎 Ajouter une affaire</h3>
+  <h3>🔎 Ajouter une affaire</h3>
 
-<input id="name" placeholder="Nom de l'article">
-<input id="buy" type="number" placeholder="Prix d'achat (€)">
-<input id="fees" type="number" placeholder="Frais (€)" value="0">
-<input id="sell" type="number" placeholder="Prix de revente (€)">
-<input id="url" placeholder="Lien Vinted">
+  <input id="name" placeholder="Nom de l'article">
+  <input id="buy" type="number" placeholder="Prix d'achat (€)">
+  <input id="fees" type="number" placeholder="Frais (€)" value="0">
+  <input id="sell" type="number" placeholder="Prix de revente (€)">
+  <input id="url" placeholder="Lien Vinted">
 
-<button onclick="addDeal()">Ajouter</button>
+  <button onclick="addDeal()">Ajouter</button>
 </div>
 
 <h2>🔥 Mes affaires</h2>
@@ -89,7 +103,9 @@ button {
 <script>
 let budget = 22;
 let deals = JSON.parse(localStorage.getItem("deals") || "[]");
-  window.DealHunterData = {
+
+// Connexion entre le site et le bot
+window.DealHunterData = {
   getBudget: () => budget,
   getDeals: () => deals,
 
@@ -111,104 +127,116 @@ let deals = JSON.parse(localStorage.getItem("deals") || "[]");
     return true;
   }
 };
-window.DealHunterData = {
-  getBudget: () => budget,
-  getDeals: () => deals,
 
-  addDeal: (deal) => {
-    deals.push(deal);
-    localStorage.setItem("deals", JSON.stringify(deals));
-    render();
-  }
-};
-};
+// Ajout manuel d'une affaire
 function addDeal() {
- const name = document.getElementById("name").value.trim();
- const buy = Number(document.getElementById("buy").value);
- const fees = Number(document.getElementById("fees").value);
- const sell = Number(document.getElementById("sell").value);
- const url = document.getElementById("url").value.trim();
+  const name = document.getElementById("name").value.trim();
+  const buyValue = document.getElementById("buy").value;
+  const feesValue = document.getElementById("fees").value;
+  const sellValue = document.getElementById("sell").value;
+  const buy = Number(buyValue);
+  const fees = Number(feesValue);
+  const sell = Number(sellValue);
+  const url = document.getElementById("url").value.trim();
 
- if (!name || !document.getElementById("buy").value ||
-     !document.getElementById("sell").value ||
-     buy < 0 || fees < 0 || sell < 0) {
-   alert("Remplis correctement les informations !");
-   return;
- }
+  if (
+    !name ||
+    buyValue === "" ||
+    sellValue === "" ||
+    buy < 0 ||
+    fees < 0 ||
+    sell < 0
+  ) {
+    alert("Remplis correctement les informations !");
+    return;
+  }
 
- const spent = deals.reduce((s,d) => s+d.buy+d.fees,0);
+  const spent = deals.reduce(
+    (s, d) => s + Number(d.buy) + Number(d.fees), 0
+  );
 
- if (spent + buy + fees > budget) {
-   alert("Tu dépasses ton budget de 22 € !");
-   return;
- }
+  if (spent + buy + fees > budget) {
+    alert("Tu dépasses ton budget de 22 € !");
+    return;
+  }
 
- deals.push({name,buy,fees,sell,url});
- localStorage.setItem("deals",JSON.stringify(deals));
- render();
+  deals.push({name, buy, fees, sell, url});
+  localStorage.setItem("deals", JSON.stringify(deals));
+
+  render();
+
+  document.getElementById("name").value = "";
+  document.getElementById("buy").value = "";
+  document.getElementById("fees").value = "0";
+  document.getElementById("sell").value = "";
+  document.getElementById("url").value = "";
 }
 
+// Affichage des affaires
 function render() {
- const spent = deals.reduce((s,d)=>s+d.buy+d.fees,0);
- const profit = deals.reduce((s,d)=>s+d.sell-d.buy-d.fees,0);
+  const spent = deals.reduce(
+    (s, d) => s + Number(d.buy) + Number(d.fees), 0
+  );
 
- document.getElementById("budget").textContent =
- (budget-spent).toFixed(2)+" €";
+  const profit = deals.reduce(
+    (s, d) => s + Number(d.sell) - Number(d.buy) - Number(d.fees), 0
+  );
 
- document.getElementById("profit").textContent =
- profit.toFixed(2)+" €";
+  document.getElementById("budget").textContent =
+    (budget - spent).toFixed(2) + " €";
 
- const list = document.getElementById("deals");
- list.innerHTML="";
+  document.getElementById("profit").textContent =
+    profit.toFixed(2) + " €";
 
- deals.forEach((d,i)=>{
-  const div=document.createElement("div");
-  div.className="card";
+  const list = document.getElementById("deals");
+  list.innerHTML = "";
 
-  const title=document.createElement("h3");
-  title.textContent=d.name;
+  deals.forEach((d, i) => {
+    const div = document.createElement("div");
+    div.className = "card";
 
-  const details=document.createElement("p");
-  details.textContent="Achat : "+d.buy+" € | Revente : "+d.sell+" €";
+    const title = document.createElement("h3");
+    title.textContent = d.name;
 
-  const result=document.createElement("p");
-  result.className="green";
-  result.textContent="Bénéfice estimé : "+
-    (d.sell-d.buy-d.fees).toFixed(2)+" €";
+    const details = document.createElement("p");
+    details.textContent =
+      "Achat : " + d.buy + " € | Revente : " + d.sell + " €";
 
-  div.append(title,details,result);
+    const result = document.createElement("p");
+    result.className = "green";
+    result.textContent =
+      "Bénéfice estimé : " +
+      (Number(d.sell) - Number(d.buy) - Number(d.fees)).toFixed(2) + " €";
 
-  if(d.url && /^https:\/\/www\.vinted\./.test(d.url)){
-    const link=document.createElement("a");
-    link.href=d.url;
-    link.target="_blank";
-    link.rel="noopener noreferrer";
-    link.textContent="Voir l'annonce";
-    div.appendChild(link);
-  }
+    div.append(title, details, result);
 
-  const del=document.createElement("button");
-  del.textContent="Supprimer";
-  del.onclick=()=>{
-    deals.splice(i,1);
-    localStorage.setItem("deals",JSON.stringify(deals));
-    render();
-  };
-  div.appendChild(del);
-  list.appendChild(div);
- });
+    if (d.url && /^https:\/\/www\.vinted\./i.test(d.url)) {
+      const link = document.createElement("a");
+      link.href = d.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Voir l'annonce";
+      div.appendChild(link);
+    }
+
+    const del = document.createElement("button");
+    del.textContent = "Supprimer";
+
+    del.onclick = () => {
+      deals.splice(i, 1);
+      localStorage.setItem("deals", JSON.stringify(deals));
+      render();
+    };
+
+    div.appendChild(del);
+    list.appendChild(div);
+  });
 }
 
 render();
 </script>
-  <script src="bot.js"></script>
+
+<script src="bot.js"></script>
+
 </body>
 </html>
-const spent = deals.reduce(
-  (s, d) => s + Number(d.buy) + Number(d.fees), 0
-);
-
-if (spent + Number(deal.buy) + Number(deal.fees) > budget) {
-  alert("Budget dépassé !");
-  return false;
-}
