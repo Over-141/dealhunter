@@ -33,6 +33,7 @@ const DealHunterBot = {
 
     chat.style.cssText = `
       display:none;
+      flex-direction:column;
       position:fixed;
       bottom:85px;
       right:20px;
@@ -66,7 +67,8 @@ const DealHunterBot = {
       </div>
 
       <form id="dh-form" style="
-        position:absolute;bottom:0;left:0;right:0;
+       position:static;
+       flex-shrink:0;
         display:flex;gap:6px;padding:10px;background:#1f2937">
         <input id="dh-input" placeholder="Pose ta question..."
           autocomplete="off" style="
@@ -81,8 +83,8 @@ const DealHunterBot = {
     document.body.append(button, chat);
 
     button.onclick = () => {
-      chat.style.display =
-        chat.style.display === "none" ? "block" : "none";
+     chat.style.display =
+  chat.style.display === "none" ? "flex" : "none";
     };
 
     chat.querySelector("#dh-close").onclick = () => {
