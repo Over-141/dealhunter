@@ -192,79 +192,108 @@ async startAnalysis(url) {
 },
 
 
-  handleAnalysisAnswer(message) {
-    const amount = Number(
-      message.replace(",", ".").replace(/[€\s]/g, "")
+
+handleAnalysisAnswer(message) {
+  const analysis = this.pendingAnalysis;
+
+  const numbers = message.match(/\d+(?:[.,]\d+)?/g);
+  const amounts = numbers
+    ? numbers.map(n => Number(n.replace(",", ".")))
+    : [];
+
+  if (!amounts.length || amounts.some(n => !Number.isFinite(n) || n < 0)) {
+    this.addMessage(
+      "Entre des prix valides, par exemple : 12 15 18",
+      "bot"
     );
+    return;
+  }
 
-    if (!Number.isFinite(amount) || amount < 0) {
+  if (analysis.step === "buy") {
+    analysis.buy = amounts[0];
+    analysis.step = "comparables";
+
+    const searchUrl =
+      "https://www.vinted.fr/catalog?search_text=" +
+      encodeURIComponent(analysis.name);
+
+    this.addMessage(
+      "🔎 PRÉPARATION DE LA COMPARAISON\n\n" +
+      "Article : " + analysis.name + "\n" +
+      "Prix d'achat : " + analysis.buy.toFixed(2) + " €\n\n" +
+      "Recherche les articles similaires sur Vinted :\n" +
+      searchUrl + "\n\n" +
+      "Envoie-moi ensuite au moins 3 prix comparables.\n" +
+      "Exemple : 12 15 18",
+      "bot"
+    );
+    return;
+  }
+
+  if (analysis.step === "comparables") {
+    if (amounts.length < 3) {
       this.addMessage(
-        "Entre simplement un montant positif, par exemple : 12,50",
+        "Il me faut au moins 3 prix pour faire une comparaison fiable.",
         "bot"
       );
       return;
     }
 
-    const analysis = this.pendingAnalysis;
+    const sorted = [...amounts].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
 
-    if (analysis.step === "buy") {
-      analysis.buy = amount;
-      analysis.step = "sell";
+    const median = sorted.length % 2
+      ? sorted[middle]
+      : (sorted[middle - 1] + sorted[middle]) / 2;
 
-      this.addMessage(
-        "Parfait ! 👍\n\n2️⃣ À combien penses-tu pouvoir revendre cet article ?",
-        "bot"
-      );
-      return;
-    }
+    analysis.sell = Number(median.toFixed(2));
+    analysis.comparablePrices = amounts;
+    analysis.step = "fees";
 
-    if (analysis.step === "sell") {
-      analysis.sell = amount;
-      analysis.step = "fees";
+    this.addMessage(
+      "📊 COMPARAISON TERMINÉE\n\n" +
+      "Prix observés : " + amounts.join(" € / ") + " €\n" +
+      "Prix de revente conseillé : " + analysis.sell.toFixed(2) + " €\n\n" +
+      "Combien prévois-tu de frais supplémentaires ?\n" +
+      "Écris 0 si tu n'en as pas.",
+      "bot"
+    );
+    return;
+  }
 
-      this.addMessage(
-        "Très bien !\n\n3️⃣ Combien prévois-tu de frais supplémentaires ?\n\n" +
-        "Écris 0 si tu n'en as pas.",
-        "bot"
-      );
-      return;
-    }
+  if (analysis.step === "fees") {
+    analysis.fees = amounts[0];
 
-    if (analysis.step === "fees") {
-      analysis.fees = amount;
+    const profit = analysis.sell - analysis.buy - analysis.fees;
+    const margin = analysis.buy > 0
+      ? profit / analysis.buy * 100
+      : 0;
 
-      const profit = analysis.sell - analysis.buy - analysis.fees;
-      const margin = analysis.buy > 0
-        ? profit / analysis.buy * 100
-        : 0;
+    this.lastAnalysis = {
+      name: analysis.name || "Article Vinted",
+      buy: analysis.buy,
+      sell: analysis.sell,
+      fees: analysis.fees,
+      url: analysis.url
+    };
 
-      this.lastAnalysis = {
-       name: analysis.name || "Article Vinted",
-        buy: analysis.buy,
-        sell: analysis.sell,
-        fees: analysis.fees,
-        url: analysis.url
-      };
+    this.pendingAnalysis = null;
 
-      this.pendingAnalysis = null;
-
-      this.addMessage(
-        "📊 RÉSULTAT DE TON ANALYSE\n\n" +
-        "Prix d'achat : " + analysis.buy.toFixed(2) + " €\n" +
-        "Revente prévue : " + analysis.sell.toFixed(2) + " €\n" +
-        "Frais : " + analysis.fees.toFixed(2) + " €\n\n" +
-        "💰 Bénéfice estimé : " + profit.toFixed(2) + " €\n" +
-        "📈 Rentabilité : " + margin.toFixed(1) + " %\n\n" +
-        (profit > 0
-          ? "🟢 Cette affaire pourrait être intéressante !"
-          : profit < 0
-            ? "🔴 Attention, tu risques de perdre de l'argent."
-            : "🟡 Tu ne ferais aucun bénéfice.") +
-        "\n\nÉcris « enregistrer » pour ajouter cette affaire à DealHunter.",
-        "bot"
-      );
-    }
-  },
+    this.addMessage(
+      "📊 RÉSULTAT DEALHUNTER\n\n" +
+      "Prix d'achat : " + analysis.buy.toFixed(2) + " €\n" +
+      "Revente conseillée : " + analysis.sell.toFixed(2) + " €\n" +
+      "Frais : " + analysis.fees.toFixed(2) + " €\n\n" +
+      "💰 Bénéfice estimé : " + profit.toFixed(2) + " €\n" +
+      "📈 Rentabilité : " + margin.toFixed(1) + " %\n\n" +
+      (profit > 0
+        ? "🟢 Affaire potentiellement intéressante !"
+        : "🔴 Attention, cette affaire pourrait être perdante.") +
+      "\n\nÉcris « enregistrer » pour ajouter cette affaire.",
+      "bot"
+    );
+  }
+},
 
   saveAnalysis() {
     const data = this.getData();
