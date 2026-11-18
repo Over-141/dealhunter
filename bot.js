@@ -131,24 +131,66 @@ const DealHunterBot = {
     }
   },
 
-  startAnalysis(url) {
-    this.pendingAnalysis = {
-      url,
-      step: "buy",
-      buy: 0,
-      sell: 0,
-      fees: 0
-    };
+ 
+async startAnalysis(url) {
+  this.pendingAnalysis = {
+    url,
+    step: "buy",
+    buy: 0,
+    sell: 0,
+    fees: 0,
+    name: "Article Vinted"
+  };
 
+  this.addMessage("🔎 Je tente de lire ton annonce Vinted...", "bot");
+
+  try {
+    const response = await fetch(
+      this.workerURL + "?url=" + encodeURIComponent(url)
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Lecture impossible");
+    }
+
+    const product = result.product;
+    const analysis = this.pendingAnalysis;
+
+    analysis.name = product.title || "Article Vinted";
+
+    const priceMatch = String(product.price || "").match(/\d+(?:[.,]\d+)?/);
+
+    if (priceMatch) {
+      analysis.buy = Number(priceMatch[0].replace(",", "."));
+      analysis.step = "sell";
+
+      this.addMessage(
+        "✅ ANNONCE LUE !\n\n" +
+        "📦 Article : " + analysis.name + "\n" +
+        "💰 Prix d'achat : " + analysis.buy.toFixed(2) + " €\n\n" +
+        "À combien penses-tu pouvoir le revendre ?",
+        "bot"
+      );
+    } else {
+      this.addMessage(
+        "✅ J'ai trouvé l'annonce : " + analysis.name +
+        "\n\nQuel est son prix d'achat ?",
+        "bot"
+      );
+    }
+
+  } catch (error) {
     this.addMessage(
-      "🔎 LIEN REÇU !\n\n" +
-      "Je ne peux pas encore récupérer automatiquement " +
-      "les détails de cette annonce.\n\n" +
-      "On va donc faire une analyse guidée.\n\n" +
-      "1️⃣ Quel est le prix d'achat de l'article ?",
+      "⚠️ Je n'arrive pas à lire automatiquement cette annonce.\n\n" +
+      "On passe en mode manuel !\n\n" +
+      "Quel est le prix d'achat de l'article ?",
       "bot"
     );
-  },
+  }
+},
+
 
   handleAnalysisAnswer(message) {
     const amount = Number(
