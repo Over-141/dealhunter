@@ -159,11 +159,13 @@ async startAnalysis(url) {
     const analysis = this.pendingAnalysis;
 
     analysis.name = product.title || "Article Vinted";
+const priceMatch = String(product.price || "").match(/\d+(?:[.,]\d+)?/);
+const detectedPrice = priceMatch
+  ? Number(priceMatch[0].replace(",", "."))
+  : 0;
 
-    const priceMatch = String(product.price || "").match(/\d+(?:[.,]\d+)?/);
-
-    if (priceMatch) {
-      analysis.buy = Number(priceMatch[0].replace(",", "."));
+   if (detectedPrice > 0 && detectedPrice <= 10000) {
+      analysis.buy = detectedPrice;
       analysis.step = "comparables";
 
       this.addMessage(
