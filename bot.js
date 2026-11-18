@@ -2,6 +2,7 @@
 /* DEALHUNTER AI - VERSION 2 */
 
 const DealHunterBot = {
+  workerURL: "https://dealhunter-api.amorbrutailssoan.workers.dev/",
   pendingAnalysis: null,
   lastAnalysis: null,
 
