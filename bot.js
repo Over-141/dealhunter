@@ -164,7 +164,7 @@ async startAnalysis(url) {
 
     if (priceMatch) {
       analysis.buy = Number(priceMatch[0].replace(",", "."));
-      analysis.step = "sell";
+      analysis.step = "comparables";
 
       this.addMessage(
         "✅ ANNONCE LUE !\n\n" +
