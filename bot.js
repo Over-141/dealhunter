@@ -170,7 +170,9 @@ async startAnalysis(url) {
         "✅ ANNONCE LUE !\n\n" +
         "📦 Article : " + analysis.name + "\n" +
         "💰 Prix d'achat : " + analysis.buy.toFixed(2) + " €\n\n" +
-        "À combien penses-tu pouvoir le revendre ?",
+        "Maintenant, ouvre cette recherche Vinted et relève au moins 3 prix d'articles similaires :\n" +
+"https://www.vinted.fr/catalog?search_text=" + encodeURIComponent(analysis.name) +
+"\n\nEnvoie-moi les 3 prix (exemple : 12, 15, 18).",
         "bot"
       );
     } else {
