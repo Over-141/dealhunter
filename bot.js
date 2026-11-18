@@ -239,7 +239,7 @@ async startAnalysis(url) {
         : 0;
 
       this.lastAnalysis = {
-        name: "Article Vinted",
+       name: analysis.name || "Article Vinted",
         buy: analysis.buy,
         sell: analysis.sell,
         fees: analysis.fees,
