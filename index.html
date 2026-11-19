@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -51,11 +50,20 @@ button {
   cursor:pointer;
 }
 
-.green {
-  color:#53e68b;
+.green { color:#53e68b; }
+.orange { color:#ffc266; }
+.red { color:#ff7777; }
+
+.secondary {
+  background:#405044;
+  color:white;
 }
 
-/* Interface du bot */
+.danger {
+  background:#a83232;
+  color:white;
+}
+
 #dh-chat-button {
   width:auto;
   margin:0;
@@ -82,6 +90,8 @@ button {
 <div class="card">
   <h3>💰 Mon budget</h3>
   <h2 class="green" id="budget">22,00 €</h2>
+  <p>Budget initial : 22 €</p>
+  <p>Argent utilisé : <span id="spent">0 €</span></p>
   <p>Bénéfices potentiels : <span id="profit">0 €</span></p>
 </div>
 
@@ -89,80 +99,110 @@ button {
   <h3>🔎 Ajouter une affaire</h3>
 
   <input id="name" placeholder="Nom de l'article">
-  <input id="buy" type="number" placeholder="Prix d'achat (€)">
-  <input id="fees" type="number" placeholder="Frais (€)" value="0">
-  <input id="sell" type="number" placeholder="Prix de revente (€)">
+  <input id="buy" type="number" min="0" step="0.01" placeholder="Prix d'achat (€)">
+  <input id="fees" type="number" min="0" step="0.01" placeholder="Frais (€)" value="0">
+  <input id="sell" type="number" min="0" step="0.01" placeholder="Prix de revente (€)">
   <input id="url" placeholder="Lien Vinted">
 
-  <button onclick="addDeal()">Ajouter</button>
+  <button onclick="addDeal()">⭐ Enregistrer pour plus tard</button>
+  <p class="orange">Cette affaire sera sauvegardée sans toucher à ton budget.</p>
 </div>
 
-<h2>🔥 Mes affaires</h2>
+<h2>⭐ À surveiller</h2>
+<div id="watchlist"></div>
+
+<h2>🔥 Mes achats</h2>
 <div id="deals"></div>
 
 <script>
 let budget = 22;
-let deals = JSON.parse(localStorage.getItem("deals") || "[]");
 
-// Connexion entre le site et le bot
+let deals = JSON.parse(localStorage.getItem("deals") || "[]");
+let watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
+
+// Anciennes affaires conservées comme achats
+// Elles restent donc comptabilisées dans le budget.
+
+function saveData() {
+  localStorage.setItem("deals", JSON.stringify(deals));
+  localStorage.setItem("watchlist", JSON.stringify(watchlist));
+}
+
+function calculateSpent() {
+  return deals.reduce(
+    (s, d) => s + Number(d.buy) + Number(d.fees), 0
+  );
+}
+
+function calculateProfit(d) {
+  return Number(d.sell) - Number(d.buy) - Number(d.fees);
+}
+
+function isValidDeal(deal) {
+  return deal.name &&
+    Number.isFinite(Number(deal.buy)) &&
+    Number.isFinite(Number(deal.sell)) &&
+    Number.isFinite(Number(deal.fees)) &&
+    Number(deal.buy) >= 0 &&
+    Number(deal.sell) >= 0 &&
+    Number(deal.fees) >= 0;
+}
+
+// Connexion avec le bot
 window.DealHunterData = {
   getBudget: () => budget,
+
+  // Le bot consulte les achats réels
   getDeals: () => deals,
 
+  // Le bot peut aussi consulter les affaires à surveiller
+  getWatchlist: () => watchlist,
+
+  // Une analyse enregistrée par le bot va dans À surveiller
   addDeal: (deal) => {
-    const spent = deals.reduce(
-      (s, d) => s + Number(d.buy) + Number(d.fees), 0
-    );
+    if (!isValidDeal(deal)) return false;
 
-    if (
-      spent + Number(deal.buy) + Number(deal.fees) > budget
-    ) {
-      alert("Budget dépassé !");
-      return false;
-    }
+    watchlist.push({
+      ...deal,
+      buy: Number(deal.buy),
+      sell: Number(deal.sell),
+      fees: Number(deal.fees)
+    });
 
-    deals.push(deal);
-    localStorage.setItem("deals", JSON.stringify(deals));
+    saveData();
     render();
     return true;
   }
 };
 
-// Ajout manuel d'une affaire
+// Ajout manuel : toujours dans À surveiller
 function addDeal() {
   const name = document.getElementById("name").value.trim();
   const buyValue = document.getElementById("buy").value;
   const feesValue = document.getElementById("fees").value;
   const sellValue = document.getElementById("sell").value;
-  const buy = Number(buyValue);
-  const fees = Number(feesValue);
-  const sell = Number(sellValue);
   const url = document.getElementById("url").value.trim();
 
-  if (
-    !name ||
-    buyValue === "" ||
-    sellValue === "" ||
-    buy < 0 ||
-    fees < 0 ||
-    sell < 0
-  ) {
+  if (!name || buyValue === "" || sellValue === "" || feesValue === "") {
     alert("Remplis correctement les informations !");
     return;
   }
 
-  const spent = deals.reduce(
-    (s, d) => s + Number(d.buy) + Number(d.fees), 0
-  );
+  const deal = {
+    name,
+    buy: Number(buyValue),
+    fees: Number(feesValue),
+    sell: Number(sellValue),
+    url
+  };
 
-  if (spent + buy + fees > budget) {
-    alert("Tu dépasses ton budget de 22 € !");
+  if (!isValidDeal(deal)) {
+    alert("Les prix doivent être des nombres positifs !");
     return;
   }
 
-  deals.push({name, buy, fees, sell, url});
-  localStorage.setItem("deals", JSON.stringify(deals));
-
+  watchlist.push(deal);
+  saveData();
   render();
 
   document.getElementById("name").value = "";
@@ -170,67 +210,176 @@ function addDeal() {
   document.getElementById("fees").value = "0";
   document.getElementById("sell").value = "";
   document.getElementById("url").value = "";
+
+  alert("⭐ Affaire enregistrée dans À surveiller !");
 }
 
-// Affichage des affaires
-function render() {
-  const spent = deals.reduce(
-    (s, d) => s + Number(d.buy) + Number(d.fees), 0
-  );
+// Déplacer une affaire vers les achats
+function buyDeal(index) {
+  const deal = watchlist[index];
+  const spent = calculateSpent();
+  const cost = Number(deal.buy) + Number(deal.fees);
 
-  const profit = deals.reduce(
-    (s, d) => s + Number(d.sell) - Number(d.buy) - Number(d.fees), 0
+  if (spent + cost > budget) {
+    alert(
+      "❌ Budget insuffisant !\n\n" +
+      "Budget disponible : " + (budget - spent).toFixed(2) + " €\n" +
+      "Coût de cette affaire : " + cost.toFixed(2) + " €"
+    );
+    return;
+  }
+
+  deals.push(deal);
+  watchlist.splice(index, 1);
+
+  saveData();
+  render();
+
+  alert("✅ Affaire déplacée dans Mes achats !");
+}
+
+function deleteWatchlist(index) {
+  if (!confirm("Supprimer cette affaire ?")) return;
+
+  watchlist.splice(index, 1);
+  saveData();
+  render();
+}
+
+function deleteDeal(index) {
+  if (!confirm("Supprimer cet achat ?")) return;
+
+  deals.splice(index, 1);
+  saveData();
+  render();
+}
+
+// Création sécurisée du lien Vinted
+function addVintedLink(div, url) {
+  if (!url) return;
+
+  try {
+    const parsed = new URL(url);
+
+    if (
+      parsed.protocol === "https:" &&
+      (parsed.hostname === "vinted.fr" ||
+       parsed.hostname.endsWith(".vinted.fr") ||
+       parsed.hostname === "vinted.com" ||
+       parsed.hostname.endsWith(".vinted.com"))
+    ) {
+      const link = document.createElement("a");
+      link.href = parsed.href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Voir l'annonce";
+      link.style.color = "#53e68b";
+      div.appendChild(link);
+    }
+  } catch (error) {}
+}
+
+// Affichage d'une carte
+function createDealCard(d, index, type) {
+  const div = document.createElement("div");
+  div.className = "card";
+
+  const title = document.createElement("h3");
+  title.textContent = d.name;
+
+  const details = document.createElement("p");
+  details.textContent =
+    "Achat : " + Number(d.buy).toFixed(2) +
+    " € | Revente : " + Number(d.sell).toFixed(2) + " €";
+
+  const fees = document.createElement("p");
+  fees.textContent = "Frais : " + Number(d.fees).toFixed(2) + " €";
+
+  const result = document.createElement("p");
+  const profit = calculateProfit(d);
+
+  result.textContent =
+    "Bénéfice estimé : " + profit.toFixed(2) + " €";
+
+  result.className = profit >= 0 ? "green" : "red";
+
+  div.append(title, details, fees, result);
+  addVintedLink(div, d.url);
+
+  if (type === "watchlist") {
+    const buyButton = document.createElement("button");
+    buyButton.textContent = "🛒 Acheter cette affaire";
+    buyButton.onclick = () => buyDeal(index);
+
+    div.appendChild(buyButton);
+
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Supprimer";
+    del.onclick = () => deleteWatchlist(index);
+
+    div.appendChild(del);
+  } else {
+    const status = document.createElement("p");
+    status.className = "green";
+    status.textContent = "✅ Achat comptabilisé dans ton budget";
+
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Supprimer";
+    del.onclick = () => deleteDeal(index);
+
+    div.append(status, del);
+  }
+
+  return div;
+}
+
+// Actualisation de l'interface
+function render() {
+  const spent = calculateSpent();
+
+  const allDeals = [...deals, ...watchlist];
+
+  const profit = allDeals.reduce(
+    (s, d) => s + calculateProfit(d), 0
   );
 
   document.getElementById("budget").textContent =
     (budget - spent).toFixed(2) + " €";
 
-  document.getElementById("profit").textContent =
-    profit.toFixed(2) + " €";
+  document.getElementById("spent").textContent =
+    spent.toFixed(2) + " €";
 
-  const list = document.getElementById("deals");
-  list.innerHTML = "";
+  const profitElement = document.getElementById("profit");
+  profitElement.textContent = profit.toFixed(2) + " €";
+  profitElement.className = profit >= 0 ? "green" : "red";
 
-  deals.forEach((d, i) => {
-    const div = document.createElement("div");
-    div.className = "card";
+  const watchListElement = document.getElementById("watchlist");
+  watchListElement.innerHTML = "";
 
-    const title = document.createElement("h3");
-    title.textContent = d.name;
+  if (watchlist.length === 0) {
+    watchListElement.textContent = "Aucune affaire à surveiller pour le moment.";
+  } else {
+    watchlist.forEach((d, i) => {
+      watchListElement.appendChild(
+        createDealCard(d, i, "watchlist")
+      );
+    });
+  }
 
-    const details = document.createElement("p");
-    details.textContent =
-      "Achat : " + d.buy + " € | Revente : " + d.sell + " €";
+  const dealsElement = document.getElementById("deals");
+  dealsElement.innerHTML = "";
 
-    const result = document.createElement("p");
-    result.className = "green";
-    result.textContent =
-      "Bénéfice estimé : " +
-      (Number(d.sell) - Number(d.buy) - Number(d.fees)).toFixed(2) + " €";
-
-    div.append(title, details, result);
-
-    if (d.url && /^https:\/\/www\.vinted\./i.test(d.url)) {
-      const link = document.createElement("a");
-      link.href = d.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = "Voir l'annonce";
-      div.appendChild(link);
-    }
-
-    const del = document.createElement("button");
-    del.textContent = "Supprimer";
-
-    del.onclick = () => {
-      deals.splice(i, 1);
-      localStorage.setItem("deals", JSON.stringify(deals));
-      render();
-    };
-
-    div.appendChild(del);
-    list.appendChild(div);
-  });
+  if (deals.length === 0) {
+    dealsElement.textContent = "Tu n'as pas encore d'achats enregistrés.";
+  } else {
+    deals.forEach((d, i) => {
+      dealsElement.appendChild(
+        createDealCard(d, i, "purchase")
+      );
+    });
+  }
 }
 
 render();
