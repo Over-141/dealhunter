@@ -337,6 +337,16 @@ function createDealCard(d, index, type) {
   div.className = "card";
 
   const title = document.createElement("h3");
+  if (d.image && /^https:\/\//i.test(d.image)) {
+  const image = document.createElement("img");
+  image.src = d.image;
+  image.alt = d.name || "Photo de l'article";
+  image.style.cssText = "width:100%;max-height:220px;object-fit:contain;border-radius:10px;margin-bottom:10px;background:#101810;";
+  image.onerror = () => {
+    image.style.display = "none";
+  };
+  div.appendChild(image);
+}
   title.textContent = d.name;
 
   const details = document.createElement("p");
