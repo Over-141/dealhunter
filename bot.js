@@ -1,4 +1,3 @@
-
 /* DEALHUNTER AI - VERSION 2 */
 
 const DealHunterBot = {
@@ -131,173 +130,226 @@ const DealHunterBot = {
     }
   },
 
- 
-async startAnalysis(url) {
-  this.pendingAnalysis = {
-    url,
-    step: "buy",
-    buy: 0,
-    sell: 0,
-    fees: 0,
-    name: "Article Vinted"
-  };
+  async startAnalysis(url) {
+    this.pendingAnalysis = {
+      url,
+      step: "buy",
+      buy: 0,
+      sell: 0,
+      fees: 0,
+      name: "Article Vinted"
+    };
 
-  this.addMessage("🔎 Je tente de lire ton annonce Vinted...", "bot");
+    this.addMessage("🔎 Je tente de lire ton annonce Vinted...", "bot");
 
-  try {
-    const response = await fetch(
-      this.workerURL + "?url=" + encodeURIComponent(url)
-    );
+    try {
+      const response = await fetch(
+        this.workerURL + "?url=" + encodeURIComponent(url)
+      );
+      const result = await response.json();
 
-    const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Lecture impossible");
+      }
 
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || "Lecture impossible");
+      const product = result.product;
+      const analysis = this.pendingAnalysis;
+      analysis.name = product.title || "Article Vinted";
+
+      const priceMatch = String(product.price || "").match(/\d+(?:[.,]\d+)?/);
+      const detectedPrice = priceMatch
+        ? Number(priceMatch[0].replace(",", "."))
+        : 0;
+
+      if (detectedPrice > 0 && detectedPrice <= 10000) {
+        analysis.buy = detectedPrice;
+        this.addMessage(
+          "✅ ANNONCE LUE !\n\n" +
+          "📦 Article : " + analysis.name + "\n" +
+          "💰 Prix d'achat : " + analysis.buy.toFixed(2) + " €\n\n" +
+          "🔎 Je recherche automatiquement des annonces comparables...",
+          "bot"
+        );
+        await this.searchComparables();
+      } else {
+        this.addMessage(
+          "✅ J'ai trouvé l'annonce : " + analysis.name +
+          "\n\nJe n'ai pas pu lire son prix. Quel est son prix d'achat ?",
+          "bot"
+        );
+      }
+    } catch (error) {
+      this.addMessage(
+        "⚠️ Je n'arrive pas à lire automatiquement cette annonce.\n\n" +
+        "On passe en mode manuel !\n\n" +
+        "Quel est le prix d'achat de l'article ?",
+        "bot"
+      );
     }
+  },
 
-    const product = result.product;
+  async searchComparables() {
     const analysis = this.pendingAnalysis;
+    if (!analysis) return;
 
-    analysis.name = product.title || "Article Vinted";
-const priceMatch = String(product.price || "").match(/\d+(?:[.,]\d+)?/);
-const detectedPrice = priceMatch
-  ? Number(priceMatch[0].replace(",", "."))
-  : 0;
+    this.addMessage("🌐 Recherche des prix comparables avec Tavily...", "bot");
 
-   if (detectedPrice > 0 && detectedPrice <= 10000) {
-      analysis.buy = detectedPrice;
-      analysis.step = "comparables";
+    try {
+      const response = await fetch(
+        this.workerURL + "?search=" + encodeURIComponent(analysis.name)
+      );
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Recherche impossible");
+      }
+
+      const pricedProducts = (result.products || [])
+        .filter(item =>
+          Number.isFinite(Number(item.price)) &&
+          Number(item.price) > 0 &&
+          Number(item.price) <= 10000
+        );
+
+      const uniquePrices = [...new Set(
+        pricedProducts.map(item => Number(item.price))
+      )];
+
+      if (uniquePrices.length < 3) {
+        const found = uniquePrices.length
+          ? "\n\nPrix trouvés : " + uniquePrices.map(p => p.toFixed(2) + " €").join(", ")
+          : "";
+
+        analysis.step = "comparables";
+        this.addMessage(
+          "⚠️ Tavily a trouvé " + uniquePrices.length +
+          " prix exploitables. Il m'en faut au moins 3 pour une estimation correcte." +
+          found +
+          "\n\nEnvoie-moi 3 prix comparables séparés par des espaces (exemple : 12 15 18).",
+          "bot"
+        );
+        return;
+      }
+
+      const sorted = [...uniquePrices].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+
+      analysis.sell = Number(median.toFixed(2));
+      analysis.comparablePrices = uniquePrices;
+      analysis.step = "fees";
 
       this.addMessage(
-        "✅ ANNONCE LUE !\n\n" +
-        "📦 Article : " + analysis.name + "\n" +
-        "💰 Prix d'achat : " + analysis.buy.toFixed(2) + " €\n\n" +
-        "Maintenant, ouvre cette recherche Vinted et relève au moins 3 prix d'articles similaires :\n" +
-"https://www.vinted.fr/catalog?search_text=" + encodeURIComponent(analysis.name) +
-"\n\nEnvoie-moi les 3 prix (exemple : 12, 15, 18).",
+        "📊 COMPARAISON AUTOMATIQUE TERMINÉE\n\n" +
+        "Annonces avec prix trouvés : " + uniquePrices.length + "\n" +
+        "Prix relevés : " + uniquePrices.map(p => p.toFixed(2) + " €").join(" / ") + "\n" +
+        "Prix de revente estimé (médiane) : " + analysis.sell.toFixed(2) + " €\n\n" +
+        "Combien prévois-tu de frais supplémentaires ? Écris 0 si tu n'en as pas.",
         "bot"
       );
-    } else {
+    } catch (error) {
+      analysis.step = "comparables";
       this.addMessage(
-        "✅ J'ai trouvé l'annonce : " + analysis.name +
-        "\n\nQuel est son prix d'achat ?",
+        "⚠️ La recherche automatique n'a pas abouti : " + error.message +
+        "\n\nTu peux m'envoyer au moins 3 prix comparables (exemple : 12 15 18).",
         "bot"
       );
     }
+  },
 
-  } catch (error) {
-    this.addMessage(
-      "⚠️ Je n'arrive pas à lire automatiquement cette annonce.\n\n" +
-      "On passe en mode manuel !\n\n" +
-      "Quel est le prix d'achat de l'article ?",
-      "bot"
-    );
-  }
-},
+  handleAnalysisAnswer(message) {
+    const analysis = this.pendingAnalysis;
+    if (!analysis) return;
 
+    const numbers = message.match(/\d+(?:[.,]\d+)?/g);
+    const amounts = numbers
+      ? numbers.map(n => Number(n.replace(",", ".")))
+      : [];
 
-
-handleAnalysisAnswer(message) {
-  const analysis = this.pendingAnalysis;
-
-  const numbers = message.match(/\d+(?:[.,]\d+)?/g);
-  const amounts = numbers
-    ? numbers.map(n => Number(n.replace(",", ".")))
-    : [];
-
-  if (!amounts.length || amounts.some(n => !Number.isFinite(n) || n < 0)) {
-    this.addMessage(
-      "Entre des prix valides, par exemple : 12 15 18",
-      "bot"
-    );
-    return;
-  }
-
-  if (analysis.step === "buy") {
-    analysis.buy = amounts[0];
-    analysis.step = "comparables";
-
-    const searchUrl =
-      "https://www.vinted.fr/catalog?search_text=" +
-      encodeURIComponent(analysis.name);
-
-    this.addMessage(
-      "🔎 PRÉPARATION DE LA COMPARAISON\n\n" +
-      "Article : " + analysis.name + "\n" +
-      "Prix d'achat : " + analysis.buy.toFixed(2) + " €\n\n" +
-      "Recherche les articles similaires sur Vinted :\n" +
-      searchUrl + "\n\n" +
-      "Envoie-moi ensuite au moins 3 prix comparables.\n" +
-      "Exemple : 12 15 18",
-      "bot"
-    );
-    return;
-  }
-
-  if (analysis.step === "comparables") {
-    if (amounts.length < 3) {
+    if (!amounts.length || amounts.some(n => !Number.isFinite(n) || n < 0)) {
       this.addMessage(
-        "Il me faut au moins 3 prix pour faire une comparaison fiable.",
+        "Entre des prix valides, par exemple : 12 15 18",
         "bot"
       );
       return;
     }
 
-    const sorted = [...amounts].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
+    if (analysis.step === "buy") {
+      analysis.buy = amounts[0];
+      this.addMessage(
+        "💰 Prix d'achat enregistré : " + analysis.buy.toFixed(2) +
+        " €\n\n🔎 Je recherche maintenant les annonces comparables...",
+        "bot"
+      );
+      this.searchComparables();
+      return;
+    }
 
-    const median = sorted.length % 2
-      ? sorted[middle]
-      : (sorted[middle - 1] + sorted[middle]) / 2;
+    if (analysis.step === "comparables") {
+      if (amounts.length < 3) {
+        this.addMessage(
+          "Il me faut au moins 3 prix pour faire une comparaison fiable.",
+          "bot"
+        );
+        return;
+      }
 
-    analysis.sell = Number(median.toFixed(2));
-    analysis.comparablePrices = amounts;
-    analysis.step = "fees";
+      const sorted = [...amounts].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
 
-    this.addMessage(
-      "📊 COMPARAISON TERMINÉE\n\n" +
-      "Prix observés : " + amounts.join(" € / ") + " €\n" +
-      "Prix de revente conseillé : " + analysis.sell.toFixed(2) + " €\n\n" +
-      "Combien prévois-tu de frais supplémentaires ?\n" +
-      "Écris 0 si tu n'en as pas.",
-      "bot"
-    );
-    return;
-  }
+      analysis.sell = Number(median.toFixed(2));
+      analysis.comparablePrices = amounts;
+      analysis.step = "fees";
 
-  if (analysis.step === "fees") {
-    analysis.fees = amounts[0];
+      this.addMessage(
+        "📊 COMPARAISON TERMINÉE\n\n" +
+        "Prix observés : " + amounts.join(" € / ") + " €\n" +
+        "Prix de revente conseillé : " + analysis.sell.toFixed(2) + " €\n\n" +
+        "Combien prévois-tu de frais supplémentaires ?\n" +
+        "Écris 0 si tu n'en as pas.",
+        "bot"
+      );
+      return;
+    }
 
-    const profit = analysis.sell - analysis.buy - analysis.fees;
-    const margin = analysis.buy > 0
-      ? profit / analysis.buy * 100
-      : 0;
+    if (analysis.step === "fees") {
+      analysis.fees = amounts[0];
 
-    this.lastAnalysis = {
-      name: analysis.name || "Article Vinted",
-      buy: analysis.buy,
-      sell: analysis.sell,
-      fees: analysis.fees,
-      url: analysis.url
-    };
+      const profit = analysis.sell - analysis.buy - analysis.fees;
+      const margin = analysis.buy > 0
+        ? profit / analysis.buy * 100
+        : 0;
 
-    this.pendingAnalysis = null;
+      this.lastAnalysis = {
+        name: analysis.name || "Article Vinted",
+        buy: analysis.buy,
+        sell: analysis.sell,
+        fees: analysis.fees,
+        url: analysis.url
+      };
 
-    this.addMessage(
-      "📊 RÉSULTAT DEALHUNTER\n\n" +
-      "Prix d'achat : " + analysis.buy.toFixed(2) + " €\n" +
-      "Revente conseillée : " + analysis.sell.toFixed(2) + " €\n" +
-      "Frais : " + analysis.fees.toFixed(2) + " €\n\n" +
-      "💰 Bénéfice estimé : " + profit.toFixed(2) + " €\n" +
-      "📈 Rentabilité : " + margin.toFixed(1) + " %\n\n" +
-      (profit > 0
-        ? "🟢 Affaire potentiellement intéressante !"
-        : "🔴 Attention, cette affaire pourrait être perdante.") +
-      "\n\nÉcris « enregistrer » pour ajouter cette affaire.",
-      "bot"
-    );
-  }
-},
+      this.pendingAnalysis = null;
+
+      this.addMessage(
+        "📊 RÉSULTAT DEALHUNTER\n\n" +
+        "Prix d'achat : " + analysis.buy.toFixed(2) + " €\n" +
+        "Revente conseillée : " + analysis.sell.toFixed(2) + " €\n" +
+        "Frais : " + analysis.fees.toFixed(2) + " €\n\n" +
+        "💰 Bénéfice estimé : " + profit.toFixed(2) + " €\n" +
+        "📈 Rentabilité : " + margin.toFixed(1) + " %\n\n" +
+        (profit > 0
+          ? "🟢 Affaire potentiellement intéressante !"
+          : "🔴 Attention, cette affaire pourrait être perdante.") +
+        "\n\nÉcris « enregistrer » pour ajouter cette affaire.",
+        "bot"
+      );
+    }
+  },
 
   saveAnalysis() {
     const data = this.getData();
@@ -315,10 +367,12 @@ handleAnalysisAnswer(message) {
       );
       return;
     }
-if (data.addDeal(this.lastAnalysis) === false) {
-  this.addMessage("❌ Budget dépassé ! Affaire non enregistrée.", "bot");
-  return;
-}
+
+    if (data.addDeal(this.lastAnalysis) === false) {
+      this.addMessage("❌ Budget dépassé ! Affaire non enregistrée.", "bot");
+      return;
+    }
+
     this.addMessage(
       "✅ Affaire enregistrée ! Tu peux maintenant la retrouver dans « Mes affaires ».",
       "bot"
@@ -331,19 +385,16 @@ if (data.addDeal(this.lastAnalysis) === false) {
     const text = message.toLowerCase().trim();
     const data = this.getData();
 
-    // Continuer une analyse en cours
     if (this.pendingAnalysis) {
       this.handleAnalysisAnswer(message);
       return;
     }
 
-    // Enregistrer la dernière analyse
     if (text === "enregistrer" || text === "enregistre") {
       this.saveAnalysis();
       return;
     }
 
-    // Détecter un lien Vinted
     if (this.isVintedLink(message)) {
       this.startAnalysis(message);
       return;
