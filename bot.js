@@ -155,7 +155,7 @@ const DealHunterBot = {
       const product = result.product;
       const analysis = this.pendingAnalysis;
       analysis.name = product.title || "Article Vinted";
-
+analysis.image = product.image || "";
       const priceMatch = String(product.price || "").match(/\d+(?:[.,]\d+)?/);
       const detectedPrice = priceMatch
         ? Number(priceMatch[0].replace(",", "."))
