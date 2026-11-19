@@ -355,8 +355,15 @@ function createDealCard(d, index, type) {
 
   result.className = profit >= 0 ? "green" : "red";
 
-  div.append(title, details, fees, result);
-  addVintedLink(div, d.url);
+div.append(title, details, fees, result);
+addVintedLink(div, d.url);
+
+const editButton = document.createElement("button");
+editButton.className = "secondary";
+editButton.textContent = "✏️ Modifier";
+editButton.onclick = () => editDeal(index, type);
+
+div.appendChild(editButton);
 
   if (type === "watchlist") {
     const buyButton = document.createElement("button");
