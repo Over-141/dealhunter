@@ -326,12 +326,13 @@ analysis.image = product.image || "";
         : 0;
 
       this.lastAnalysis = {
-        name: analysis.name || "Article Vinted",
-        buy: analysis.buy,
-        sell: analysis.sell,
-        fees: analysis.fees,
-        url: analysis.url
-      };
+  name: analysis.name || "Article Vinted",
+  buy: analysis.buy,
+  sell: analysis.sell,
+  fees: analysis.fees,
+  url: analysis.url,
+  image: analysis.image || ""
+};
 
       this.pendingAnalysis = null;
 
