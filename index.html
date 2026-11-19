@@ -237,7 +237,59 @@ function buyDeal(index) {
 
   alert("✅ Affaire déplacée dans Mes achats !");
 }
+// Modifier une affaire
+function editDeal(index, type) {
+  const list = type === "watchlist" ? watchlist : deals;
+  const deal = list[index];
 
+  const name = prompt("Nom de l'article :", deal.name);
+  if (name === null) return;
+
+  const buy = prompt("Prix d'achat (€) :", deal.buy);
+  if (buy === null) return;
+
+  const fees = prompt("Frais (€) :", deal.fees);
+  if (fees === null) return;
+
+  const sell = prompt("Prix de revente (€) :", deal.sell);
+  if (sell === null) return;
+
+  const url = prompt("Lien de l'annonce :", deal.url || "");
+  if (url === null) return;
+
+  const updatedDeal = {
+    name: name.trim(),
+    buy: Number(buy),
+    fees: Number(fees),
+    sell: Number(sell),
+    url: url.trim()
+  };
+
+  if (!isValidDeal(updatedDeal)) {
+    alert("Informations invalides !");
+    return;
+  }
+
+  // Vérifier le budget si c'est un achat
+  if (type === "purchase") {
+    const spentWithoutThisDeal =
+      calculateSpent() - Number(deal.buy) - Number(deal.fees);
+
+    const newCost = updatedDeal.buy + updatedDeal.fees;
+
+    if (spentWithoutThisDeal + newCost > budget) {
+      alert("❌ Modification refusée : ton budget serait dépassé !");
+      return;
+    }
+  }
+
+  list[index] = updatedDeal;
+
+  saveData();
+  render();
+
+  alert("✅ Annonce modifiée !");
+}
 function deleteWatchlist(index) {
   if (!confirm("Supprimer cette affaire ?")) return;
 
