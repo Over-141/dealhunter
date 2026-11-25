@@ -134,7 +134,44 @@ function saveData() {
   localStorage.setItem("watchlist", JSON.stringify(watchlist));
   localStorage.setItem("budget", budget);
 }
+function addMoney() {
+  const input = document.getElementById("budgetInput");
+  const amount = Number(input.value);
 
+  if (input.value === "" || !Number.isFinite(amount) || amount <= 0) {
+    alert("Entre un montant supérieur à 0 €.");
+    return;
+  }
+
+  budget += amount;
+  saveData();
+  render();
+  input.value = "";
+  alert(amount.toFixed(2) + " € ajoutés à ton budget !");
+}
+
+function changeBudget() {
+  const input = document.getElementById("newBudget");
+  const newAmount = Number(input.value);
+
+  if (input.value === "" || !Number.isFinite(newAmount) || newAmount < 0) {
+    alert("Entre un budget valide.");
+    return;
+  }
+
+  const spent = calculateSpent();
+
+  if (newAmount < spent) {
+    alert("Ton budget ne peut pas être inférieur à l'argent déjà utilisé.");
+    return;
+  }
+
+  budget = newAmount;
+  saveData();
+  render();
+  input.value = "";
+  alert("Budget total mis à jour !");
+}
 function calculateSpent() {
   return deals.reduce(
     (s, d) => s + Number(d.buy) + Number(d.fees), 0
