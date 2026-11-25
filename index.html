@@ -89,8 +89,14 @@ button {
 
 <div class="card">
   <h3>💰 Mon budget</h3>
-  <h2 class="green" id="budget">22,00 €</h2>
-  <p>Budget initial : 22 €</p>
+  <h2 class="green" id="budget">0,00 €</h2>
+
+  <input id="budgetInput" type="number" min="0" step="0.01" placeholder="Ajouter de l'argent (€)">
+  <button onclick="addMoney()">➕ Ajouter de l'argent</button>
+
+  <input id="newBudget" type="number" min="0" step="0.01" placeholder="Nouveau budget total (€)">
+  <button class="secondary" onclick="changeBudget()">✏️ Modifier le budget total</button>
+
   <p>Argent utilisé : <span id="spent">0 €</span></p>
   <p>Bénéfices potentiels : <span id="profit">0 €</span></p>
 </div>
