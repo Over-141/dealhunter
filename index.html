@@ -517,30 +517,48 @@ if (savedBackground) {
   document.body.style.backgroundPosition = "center";
 }
 
-// Importer une image
-backgroundInput.addEventListener("change", function() {
+// Importer et compresser une image
+backgroundInput.addEventListener("change", async function() {
   const file = this.files[0];
 
   if (!file) return;
 
-  if (file.size > 2 * 1024 * 1024) {
-    alert("Image trop lourde ! Choisis une image de moins de 2 Mo.");
-    this.value = "";
+  if (!file.type.startsWith("image/")) {
+    alert("Choisis une image valide.");
     return;
   }
 
-  const reader = new FileReader();
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
 
-  reader.onload = function() {
-    localStorage.setItem("backgroundImage", reader.result);
+    const maxSize = 1400;
+    const ratio = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
 
-    document.body.style.backgroundImage = `url("${reader.result}")`;
+    canvas.width = Math.round(bitmap.width * ratio);
+    canvas.height = Math.round(bitmap.height * ratio);
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const compressedImage = canvas.toDataURL("image/jpeg", 0.7);
+
+    document.body.style.backgroundImage = `url("${compressedImage}")`;
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundAttachment = "fixed";
     document.body.style.backgroundPosition = "center";
-  };
 
-  reader.readAsDataURL(file);
+    try {
+      localStorage.setItem("backgroundImage", compressedImage);
+      alert("Fond personnalisé enregistré ! 🎨");
+    } catch (error) {
+      alert("Image affichée, mais impossible de la sauvegarder. Essaie une image plus petite.");
+    }
+
+  } catch (error) {
+    alert("Impossible de charger cette image.");
+  }
 });
 
 // Remettre le fond d'origine
