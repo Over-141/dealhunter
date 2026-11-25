@@ -172,6 +172,8 @@ function changeBudget() {
   input.value = "";
   alert("Budget total mis à jour !");
 }
+  window.addMoney = addMoney;
+window.changeBudget = changeBudget;
 function calculateSpent() {
   return deals.reduce(
     (s, d) => s + Number(d.buy) + Number(d.fees), 0
