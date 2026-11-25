@@ -115,7 +115,7 @@ button {
 <div id="deals"></div>
 
 <script>
-let budget = 22;
+let budget = Number(localStorage.getItem("budget") || 0);
 
 let deals = JSON.parse(localStorage.getItem("deals") || "[]");
 let watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
@@ -126,6 +126,7 @@ let watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
 function saveData() {
   localStorage.setItem("deals", JSON.stringify(deals));
   localStorage.setItem("watchlist", JSON.stringify(watchlist));
+  localStorage.setItem("budget", budget);
 }
 
 function calculateSpent() {
