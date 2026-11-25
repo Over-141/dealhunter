@@ -504,7 +504,53 @@ function render() {
     });
   }
 }
+// Personnalisation du fond
+const backgroundInput = document.getElementById("backgroundInput");
 
+// Charger le fond enregistré
+const savedBackground = localStorage.getItem("backgroundImage");
+
+if (savedBackground) {
+  document.body.style.backgroundImage = `url("${savedBackground}")`;
+  document.body.style.backgroundSize = "cover";
+  document.body.style.backgroundAttachment = "fixed";
+  document.body.style.backgroundPosition = "center";
+}
+
+// Importer une image
+backgroundInput.addEventListener("change", function() {
+  const file = this.files[0];
+
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("Image trop lourde ! Choisis une image de moins de 2 Mo.");
+    this.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function() {
+    localStorage.setItem("backgroundImage", reader.result);
+
+    document.body.style.backgroundImage = `url("${reader.result}")`;
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundPosition = "center";
+  };
+
+  reader.readAsDataURL(file);
+});
+
+// Remettre le fond d'origine
+function resetBackground() {
+  localStorage.removeItem("backgroundImage");
+  document.body.style.backgroundImage = "";
+  backgroundInput.value = "";
+}
+
+window.resetBackground = resetBackground;
 render();
 </script>
 
