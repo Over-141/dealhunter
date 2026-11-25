@@ -204,11 +204,12 @@ analysis.image = product.image || "";
         throw new Error(result.error || "Recherche impossible");
       }
 
-      const pricedProducts = (result.products || [])
+           const pricedProducts = (result.products || [])
         .filter(item =>
           Number.isFinite(Number(item.price)) &&
           Number(item.price) > 0 &&
-          Number(item.price) <= 10000
+          Number(item.price) <= 10000 &&
+          item.url
         );
 
       const uniquePrices = [...new Set(
@@ -239,11 +240,16 @@ analysis.image = product.image || "";
 
       analysis.sell = Number(median.toFixed(2));
       analysis.comparablePrices = uniquePrices;
+            const listingDetails = pricedProducts.slice(0, 5).map((item, index) =>
+        (index + 1) + ". " + (item.title || "Annonce") +
+        " : " + Number(item.price).toFixed(2) + " €\n" + item.url
+      ).join("\n\n");
       analysis.step = "fees";
 
       this.addMessage(
         "📊 COMPARAISON AUTOMATIQUE TERMINÉE\n\n" +
-        "Annonces avec prix trouvés : " + uniquePrices.length + "\n" +
+        "Annonces avec prix trouvés : " + uniquePrices.length + "\n\n" +
+"🔎 Annonces comparables :\n" + listingDetails + "\n\n" +
         "Prix relevés : " + uniquePrices.map(p => p.toFixed(2) + " €").join(" / ") + "\n" +
         "Prix de revente estimé (médiane) : " + analysis.sell.toFixed(2) + " €\n\n" +
         "Combien prévois-tu de frais supplémentaires ? Écris 0 si tu n'en as pas.",
