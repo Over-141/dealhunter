@@ -79,19 +79,46 @@ button {
   margin:0;
   box-sizing:border-box;
 }
+  #backgroundButton {
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  width:auto;
+  padding:14px 20px;
+  border-radius:30px;
+  background:#2563eb;
+  color:white;
+  z-index:9999;
+  box-shadow:0 4px 15px #0005;
+}
+
+#resetBackgroundButton {
+  position:fixed;
+  bottom:20px;
+  left:125px;
+  width:42px;
+  height:42px;
+  padding:0;
+  border-radius:50%;
+  background:#405044;
+  color:white;
+  z-index:9999;
+}
 </style>
 </head>
 
 <body>
 
 <h1>⚡ DealHunter</h1>
-  <div class="card">
-  <h3>🎨 Personnaliser le fond</h3>
-  <input type="file" id="backgroundInput" accept="image/*">
-  <button onclick="resetBackground()" class="secondary">
-    🔄 Remettre le fond d'origine
-  </button>
-</div>
+  <input type="file" id="backgroundInput" accept="image/*" style="display:none">
+
+<button id="backgroundButton" onclick="document.getElementById('backgroundInput').click()">
+  🎨 Fond
+</button>
+
+<button id="resetBackgroundButton" onclick="resetBackground()">
+  ↺
+</button>
 <p>Ton assistant achat-revente</p>
 
 <div class="card">
